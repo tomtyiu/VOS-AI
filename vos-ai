@@ -31,7 +31,7 @@ WAVE_OUTPUT_FILENAME = "file.wav"
 
 
 OUTPUT_PATH = "output.mp3"  # Path to save the output audio file
-YOUR_API_KEY = "" //pexplexity api
+YOUR_API_KEY = "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"
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -99,6 +99,19 @@ def chat(messages):
     print(completion.choices[0].message.content)
     return completion.choices[0].message.content
 
+def search(text):
+    from openai import OpenAI
+    client = OpenAI()
+
+    response = client.responses.create(
+        model="gpt-4.1",
+        tools=[{"type": "web_search_preview"}],
+        input=text
+    )
+
+    print(response.output_text)
+    synthesis(response.output_text)
+    
 
 def synthesis(text):
     client = ElevenLabs(
@@ -187,7 +200,7 @@ def open_application(command):
         recording(WAVE_OUTPUT_FILENAME)  # Record voice input
         transcription = transcribe(WAVE_OUTPUT_FILENAME)  # Transcribe the audio file
         print(transcription)
-        AI_search(transcription)
+        search(transcription)
         return True
     return False  # Indicates no application command was executed
 
