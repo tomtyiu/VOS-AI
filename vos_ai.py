@@ -126,6 +126,51 @@ def synthesis(text):
      )
     play(audio)
 
+def run_python_code(prompt):
+    """Generate Python code with OpenAI from the prompt, run it, and speak the result."""
+    import subprocess
+    import tempfile
+    from openai import OpenAI
+
+    client = OpenAI()
+    completion = client.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": "Write a Python script that accomplishes the user's request. Only output the code."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    code = completion.choices[0].message.content.strip()
+    if code.startswith("```"):
+        code = code.lstrip("`")
+        if code.lower().startswith("python"):
+            code = code[len("python"):].strip()
+        if "```" in code:
+            code = code.split("```")[0].strip()
+
+    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as f:
+        f.write(code)
+        temp_file = f.name
+    try:
+        result = subprocess.run([sys.executable, temp_file], capture_output=True, text=True, timeout=20)
+        output = result.stdout.strip()
+        error = result.stderr.strip()
+        if error:
+            synthesis(f"There was an error: {error}")
+        else:
+            if output:
+                synthesis(output)
+            else:
+                synthesis("Python command completed successfully.")
+    except Exception as e:
+        synthesis(f"Failed to run Python code: {e}")
+    finally:
+        try:
+            os.remove(temp_file)
+        except OSError:
+            pass
+    synthesis("Done. What would you like me to do next?")
+
 def open_application(command):
     """Open an application or perform a Google search based on the command."""
     lower_command = command.lower()
@@ -165,6 +210,11 @@ def open_application(command):
             synthesis("Openning applicaiton now")
             os.system(system_command)
             return True  # Indicates that an application command was executed
+    if lower_command.startswith('run python ') or lower_command.startswith('execute python '):
+        prefix = 'run python ' if lower_command.startswith('run python ') else 'execute python '
+        code = command[len(prefix):]
+        run_python_code(code)
+        return True
     if 'search google for' in lower_command:
         # Extracting the query after the specific phrase
         query = lower_command.split('search google for')[-1].strip()
