@@ -301,7 +301,7 @@ def AI_search(text):
 
 def main():
     print("Running VoxOS. Press spacebar to stop.")
-    synthesis("This is Vox O.S.  Your O.S voice assistant. How can I help you today?")  # Convert text to speech
+    synthesis("This is Voice O.S.  Your O.S voice assistant. How can I help you today?")  # Convert text to speech
     while not keyboard.is_pressed('space'):
         print("Enter Voice Prompt")
         recording(WAVE_OUTPUT_FILENAME)  # Record voice input
