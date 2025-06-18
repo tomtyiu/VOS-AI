@@ -3,17 +3,16 @@ from openai.types import completion
 import requests
 import whisper
 import torch
-from transformers import pipeline
-from transformers.pipelines.audio_utils import ffmpeg_microphone_live
+#from transformers import pipeline
+#from transformers.pipelines.audio_utils import ffmpeg_microphone_live
 import sys
 import keyboard
 from pygame import mixer
 from elevenlabs.client import ElevenLabs
 from elevenlabs import stream
 from elevenlabs import play
-from groq import Groq
 import os
-import pyaudio
+import pyaudio  
 from faster_whisper import WhisperModel
 import wave
 from urllib.parse import quote
@@ -21,7 +20,7 @@ import webbrowser
 from openai import OpenAI
 
 
-
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 FORMAT = pyaudio.paInt16
 CHANNELS = 2
 RATE = 44100
@@ -31,25 +30,22 @@ WAVE_OUTPUT_FILENAME = "file.wav"
 
 
 OUTPUT_PATH = "output.mp3"  # Path to save the output audio file
-YOUR_API_KEY = ""
+YOUR_API_KEY = "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"
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
-client = Groq(
-    # This is the default and can be omitted
-    api_key=os.environ.get("GROQ_API_KEY"),
-)
-
-model = "llama3"  # TODO: update this for whatever model you wish to use
 
 model = WhisperModel("base")
 
 def transcribe(audio_file):
-    segments, info = model.transcribe(audio_file, beam_size=5)
-    transcription = ""
-    for segment in segments:
-        transcription += segment.text + ""
-    return transcription.strip()
+    client = OpenAI()
+    audio_file= open(audio_file, "rb")
+
+    transcription = client.audio.transcriptions.create(
+        model="gpt-4o-mini-transcribe", 
+        file=audio_file
+    )
+
+    return transcription.text
 
 
 def recording(WAVE_OUTPUT_FILENAME):
@@ -126,51 +122,6 @@ def synthesis(text):
      )
     play(audio)
 
-def run_python_code(prompt):
-    """Generate Python code with OpenAI from the prompt, run it, and speak the result."""
-    import subprocess
-    import tempfile
-    from openai import OpenAI
-
-    client = OpenAI()
-    completion = client.chat.completions.create(
-        model="gpt-4.1",
-        messages=[
-            {"role": "system", "content": "Write a Python script that accomplishes the user's request. Only output the code."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    code = completion.choices[0].message.content.strip()
-    if code.startswith("```"):
-        code = code.lstrip("`")
-        if code.lower().startswith("python"):
-            code = code[len("python"):].strip()
-        if "```" in code:
-            code = code.split("```")[0].strip()
-
-    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as f:
-        f.write(code)
-        temp_file = f.name
-    try:
-        result = subprocess.run([sys.executable, temp_file], capture_output=True, text=True, timeout=20)
-        output = result.stdout.strip()
-        error = result.stderr.strip()
-        if error:
-            synthesis(f"There was an error: {error}")
-        else:
-            if output:
-                synthesis(output)
-            else:
-                synthesis("Python command completed successfully.")
-    except Exception as e:
-        synthesis(f"Failed to run Python code: {e}")
-    finally:
-        try:
-            os.remove(temp_file)
-        except OSError:
-            pass
-    synthesis("Done. What would you like me to do next?")
-
 def open_application(command):
     """Open an application or perform a Google search based on the command."""
     lower_command = command.lower()
@@ -210,11 +161,6 @@ def open_application(command):
             synthesis("Openning applicaiton now")
             os.system(system_command)
             return True  # Indicates that an application command was executed
-    if lower_command.startswith('run python ') or lower_command.startswith('execute python '):
-        prefix = 'run python ' if lower_command.startswith('run python ') else 'execute python '
-        code = command[len(prefix):]
-        run_python_code(code)
-        return True
     if 'search google for' in lower_command:
         # Extracting the query after the specific phrase
         query = lower_command.split('search google for')[-1].strip()
@@ -301,7 +247,7 @@ def AI_search(text):
 
 def main():
     print("Running VoxOS. Press spacebar to stop.")
-    synthesis("This is Voice O.S.  Your O.S voice assistant. How can I help you today?")  # Convert text to speech
+    synthesis("This is Vox O.S.  Your O.S voice assistant. How can I help you today?")  # Convert text to speech
     while not keyboard.is_pressed('space'):
         print("Enter Voice Prompt")
         recording(WAVE_OUTPUT_FILENAME)  # Record voice input
