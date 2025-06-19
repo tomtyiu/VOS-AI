@@ -47,11 +47,11 @@ Say **"run python"** followed by a description of the code you want to generate 
 
 ## TODO
 
-- Cross-platform support for Linux and macOS
 - User-friendly GUI interface
+## Finished:
+- Cross-platform support for Linux and macOS
 - More built-in voice commands
 - Better error handling for speech recognition
-## Finished:
 - Removed hard-coded API keys from the source
 
 ## Evaluation
