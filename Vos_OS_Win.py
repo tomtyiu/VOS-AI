@@ -292,50 +292,66 @@ def playing():
     print("Playing audio.")
 
 
-def on_record():
-    recording_now()
-    mp4_path = os.path.join(os.getcwd(), "C:\\Users\\Thomas_Yiu\\Downloads\\sample.mp4")
-    if os.path.exists(mp4_path):
-        if sys.platform.startswith('win'):
+class VoxGUI:
+    """Simple tkinter based GUI for interacting with VoxOS."""
+
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("VoxOS Assistant")
+
+        try:
+            from tkinter import scrolledtext  # type: ignore
+        except Exception:  # pragma: no cover - optional dependency may be missing
+            scrolledtext = None  # type: ignore
+
+        if scrolledtext:
+            self.log_widget = scrolledtext.ScrolledText(self.root, width=60, height=20, wrap=tk.WORD)
+        else:  # Fallback if ScrolledText is not available
+            self.log_widget = tk.Text(self.root, width=60, height=20, wrap=tk.WORD)
+
+        self.log_widget.pack(padx=10, pady=10)
+
+        self.record_btn = tk.Button(self.root, text="Record", command=self.on_record, width=20)
+        self.record_btn.pack(pady=5)
+
+        self.quit_btn = tk.Button(self.root, text="Quit", command=self.root.quit, width=20)
+        self.quit_btn.pack(pady=5)
+
+    def log(self, text: str) -> None:
+        """Insert text into the log window."""
+        self.log_widget.insert(tk.END, text + "\n")
+        self.log_widget.see(tk.END)
+
+    def on_record(self) -> None:
+        """Handle the Record button action."""
+        recording_now()
+        mp4_path = os.path.join(os.getcwd(), "C:\\Users\\Thomas_Yiu\\Downloads\\sample.mp4")
+        if os.path.exists(mp4_path) and sys.platform.startswith('win'):
             subprocess.Popen(['start', '', mp4_path], shell=True)
-        else:
-            print("This script is set up for Windows.")
-    else:
-        print("MP4 file not found.")
-    
-    recording(WAVE_OUTPUT_FILENAME)  # Record voice input
-    transcription = transcribe(WAVE_OUTPUT_FILENAME)  # Transcribe the audio file
-    #print("Vox:", transcription)            
-    if open_application(transcription):  # Check if it's an application command
-        print("Application command processed.")
-    else:
-        # Handle as normal user input
-        #messages = [{"role": "system", "content": "You are an personal assistant that perform multiple tasks, check weather, stocks, news, latest songs, latest products, facts, science, biology, chemistry, science, politics, marketing, business and others. Your name is Bob. You respond with concise and short responses. You are confident and professional. You are having a vocal conversation with a user. You will never output any markdown or formatted text of any kind, and you will speak in a concise, shighly conversational manner. You troubleshoot and don't hesitate to send it to repair to repair facility after troubleshooting. You will adopt any persona that the user may ask of you."}]
-        #You will adopt any persona that the user may ask of you. You provide latest weather report, latest sport news, finances, poetry, latest news reports, science and technology news.
-        user_input = transcription  # Process user's spoken input
-        if not user_input:
+
+        recording(WAVE_OUTPUT_FILENAME)
+        transcription = transcribe(WAVE_OUTPUT_FILENAME)
+        if not transcription:
             synthesis("No input detected. Please try again.")
-            return  # Skip if transcription is empty
-        #messages.append({"role": "user", "content": user_input})
-        response = chat(user_input)  # Get chat model response
-        clean_text = remove_double_stars(response)  # Clean the response text
-        synthesis(clean_text)  # Convert text to speech
-        #messages.append({"role": "assistant", "content": response})  # Log the assistant's response
-        synthesis("Response processed and spoken.")
+            self.log("No input detected. Please try again.")
+            return
+        self.log("You: " + transcription)
 
-def on_play():
-    playing()
+        if open_application(transcription):
+            self.log("Application command processed.")
+        else:
+            response = chat(transcription)
+            clean_text = remove_double_stars(response)
+            self.log("VoxOS: " + clean_text)
+            synthesis(clean_text)
 
-root = tk.Tk()
-root.title("Recorder Interface")
 
-record_btn = tk.Button(root, text="Record", command=on_record, width=20)
-record_btn.pack(pady=10)
+def launch_gui() -> None:
+    """Launch the Tkinter GUI."""
+    gui = VoxGUI()
+    synthesis("This is Vox O.S.  Your O.S voice assistant. How can I help you today?")
+    gui.root.mainloop()
 
-play_btn = tk.Button(root, text="Play", command=on_play, width=20)
-play_btn.pack(pady=10)
-
-root.mainloop()
 
 if __name__ == "__main__":
-    main()
+    launch_gui()
