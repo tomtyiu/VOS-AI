@@ -1,6 +1,6 @@
 # VOS-AI
 
-VOS-AI is a voice-operating system and operated assistant that uses speech recognition and AI models to control your desktop. It relies on OpenAI and Groq for natural language understanding and ElevenLabs for text-to-speech.
+VOS-AI is a voice-operated operating system assistant that uses speech recognition and AI models to control your desktop. It relies on OpenAI and Groq for natural language understanding and ElevenLabs for text-to-speech.
 
 ## Features
 
