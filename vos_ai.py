@@ -1,54 +1,103 @@
 import json
-from openai.types import completion
-import requests
-import whisper
-import torch
-#from transformers import pipeline
-#from transformers.pipelines.audio_utils import ffmpeg_microphone_live
 import sys
-import keyboard
-from pygame import mixer
-from elevenlabs.client import ElevenLabs
-from elevenlabs import stream
-from elevenlabs import play
 import os
-import pyaudio  
-from faster_whisper import WhisperModel
 import wave
 from urllib.parse import quote
 import webbrowser
-from openai import OpenAI
+
+# Optional heavy dependencies are imported lazily so the module can be used for
+# testing without them installed.
+try:  # type: ignore
+    from openai import OpenAI  # noqa: F401
+except Exception:  # pragma: no cover - optional dependency
+    OpenAI = None  # type: ignore
+
+try:  # type: ignore
+    import requests  # noqa: F401
+except Exception:  # pragma: no cover
+    requests = None  # type: ignore
+
+try:  # type: ignore
+    import whisper  # noqa: F401
+except Exception:  # pragma: no cover
+    whisper = None  # type: ignore
+
+try:  # type: ignore
+    import torch
+except Exception:  # pragma: no cover
+    torch = None  # type: ignore
+
+try:  # type: ignore
+    import keyboard  # noqa: F401
+except Exception:  # pragma: no cover
+    keyboard = None  # type: no cover
+
+try:  # type: ignore
+    from pygame import mixer  # noqa: F401
+except Exception:  # pragma: no cover
+    mixer = None  # type: ignore
+
+try:  # type: ignore
+    from elevenlabs.client import ElevenLabs  # noqa: F401
+    from elevenlabs import play  # noqa: F401
+except Exception:  # pragma: no cover
+    ElevenLabs = None  # type: ignore
+    def play(audio):  # type: ignore
+        pass
+
+try:  # type: ignore
+    import pyaudio
+except Exception:  # pragma: no cover
+    pyaudio = None  # type: ignore
+
+try:  # type: ignore
+    from faster_whisper import WhisperModel  # noqa: F401
+except Exception:  # pragma: no cover
+    WhisperModel = None  # type: ignore
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-FORMAT = pyaudio.paInt16
-CHANNELS = 2
-RATE = 44100
-CHUNK = 1024
-RECORD_SECONDS = 6
+if pyaudio:
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 2
+    RATE = 44100
+    CHUNK = 1024
+    RECORD_SECONDS = 6
+else:  # pragma: no cover - missing audio support
+    FORMAT = CHANNELS = RATE = CHUNK = RECORD_SECONDS = None
 WAVE_OUTPUT_FILENAME = "file.wav"
 
 
 OUTPUT_PATH = "output.mp3"  # Path to save the output audio file
 YOUR_API_KEY = ""
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+if torch and hasattr(torch, "cuda") and torch.cuda.is_available():
+    device = "cuda:0"
+else:
+    device = "cpu"
 
-model = WhisperModel("base")
+model = WhisperModel("base") if WhisperModel else None
 
 def transcribe(audio_file):
+    """Transcribe audio to text using OpenAI if available."""
+    if OpenAI is None:  # pragma: no cover - optional dependency missing
+        raise RuntimeError("OpenAI package not installed")
+
     client = OpenAI()
-    audio_file= open(audio_file, "rb")
+    audio_file = open(audio_file, "rb")
 
     transcription = client.audio.transcriptions.create(
-        model="gpt-4o-mini-transcribe", 
-        file=audio_file
+        model="gpt-4o-mini-transcribe",
+        file=audio_file,
     )
 
     return transcription.text
 
 
 def recording(WAVE_OUTPUT_FILENAME):
+    if pyaudio is None:  # pragma: no cover - optional dependency missing
+        raise RuntimeError("pyaudio package not installed")
+
     audio = pyaudio.PyAudio()
  
     # start Recording
@@ -110,16 +159,18 @@ def search(text):
     
 
 def synthesis(text):
-    client = ElevenLabs(
-        api_key="6e0cbf471758fea24ca41cdbea3ef586", # Defaults to ELEVEN_API_KEY
-        )
+    """Convert text to speech if ElevenLabs is available."""
+    if ElevenLabs is None:  # pragma: no cover
+        print(text)
+        return
+
+    client = ElevenLabs(api_key=os.environ.get("ELEVEN_API_KEY", ""))
 
     audio = client.generate(
         text=text,
         voice="pNInz6obpgDQGcFmaJgB",
-        model="eleven_flash_v2_5"
-        #stream=True
-     )
+        model="eleven_flash_v2_5",
+    )
     play(audio)
 
 def open_application(command):
@@ -201,6 +252,9 @@ def open_application(command):
     return False  # Indicates no application command was executed
 
 def AI_search(text):
+    if requests is None:  # pragma: no cover - optional dependency missing
+        raise RuntimeError("requests package not installed")
+
     url = "https://api.perplexity.ai/chat/completions"
 
     payload = {
