@@ -7,19 +7,22 @@ import vos_ai
 
 class TestOpenApplication(unittest.TestCase):
     def test_known_command(self):
-        with mock.patch('vos_ai.os.system') as mock_system:
+        with mock.patch('vos_ai.os.system') as mock_system, \
+             mock.patch('vos_ai.synthesis'):
             result = vos_ai.open_application('open chrome')
             self.assertTrue(result)
             mock_system.assert_called_once()
 
     def test_search_google(self):
-        with mock.patch('vos_ai.webbrowser.open') as mock_open:
+        with mock.patch('vos_ai.webbrowser.open') as mock_open, \
+             mock.patch('vos_ai.synthesis'):
             result = vos_ai.open_application('search google for unit testing')
             self.assertTrue(result)
             mock_open.assert_called_once()
 
     def test_unknown_command(self):
-        with mock.patch('vos_ai.os.system') as mock_system:
+        with mock.patch('vos_ai.os.system') as mock_system, \
+             mock.patch('vos_ai.synthesis'):
             result = vos_ai.open_application('do something unknown')
             self.assertFalse(result)
             mock_system.assert_not_called()

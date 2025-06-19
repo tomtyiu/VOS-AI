@@ -1,27 +1,57 @@
+# Third-party imports. Some are optional so tests can run without them.
 import json
-from openai.types import completion
-import requests
-import whisper
-import torch
+try:
+    from openai.types import completion  # type: ignore
+    from openai import OpenAI  # type: ignore
+except Exception:  # pragma: no cover - optional dependency may be missing
+    OpenAI = None
+try:
+    import requests
+except Exception:  # pragma: no cover - optional dependency may be missing
+    requests = None
+try:
+    import whisper
+except Exception:  # pragma: no cover - optional dependency may be missing
+    whisper = None
+try:
+    import torch
+except Exception:  # pragma: no cover - optional dependency may be missing
+    torch = None
 #from transformers import pipeline
 #from transformers.pipelines.audio_utils import ffmpeg_microphone_live
 import sys
-import keyboard
-from pygame import mixer
-from elevenlabs.client import ElevenLabs
-from elevenlabs import stream
-from elevenlabs import play
+try:
+    import keyboard
+except Exception:  # pragma: no cover - optional dependency may be missing
+    keyboard = None
+try:
+    from pygame import mixer
+except Exception:  # pragma: no cover - optional dependency may be missing
+    mixer = None
+try:
+    from elevenlabs.client import ElevenLabs
+    from elevenlabs import stream
+    from elevenlabs import play
+except Exception:  # pragma: no cover - optional dependency may be missing
+    ElevenLabs = None
+    stream = None
+    play = None
 import os
-import pyaudio  
-from faster_whisper import WhisperModel
+try:
+    import pyaudio
+except Exception:  # pragma: no cover - optional dependency may be missing
+    pyaudio = None
+try:
+    from faster_whisper import WhisperModel
+except Exception:  # pragma: no cover - optional dependency may be missing
+    WhisperModel = None
 import wave
 from urllib.parse import quote
 import webbrowser
-from openai import OpenAI
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-FORMAT = pyaudio.paInt16
+FORMAT = pyaudio.paInt16 if pyaudio else None
 CHANNELS = 2
 RATE = 44100
 CHUNK = 1024
@@ -32,20 +62,25 @@ WAVE_OUTPUT_FILENAME = "file.wav"
 OUTPUT_PATH = "output.mp3"  # Path to save the output audio file
 YOUR_API_KEY = ""
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+device = "cuda:0" if torch and torch.cuda.is_available() else "cpu"
 
-model = WhisperModel("base")
+model = WhisperModel("base") if WhisperModel else None
 
 def transcribe(audio_file):
+    """Transcribe audio to text with basic error handling."""
+    if OpenAI is None:
+        raise ImportError("openai package is required for transcription")
     client = OpenAI()
-    audio_file= open(audio_file, "rb")
-
-    transcription = client.audio.transcriptions.create(
-        model="gpt-4o-mini-transcribe", 
-        file=audio_file
-    )
-
-    return transcription.text
+    try:
+        with open(audio_file, "rb") as audio_file_obj:
+            transcription = client.audio.transcriptions.create(
+                model="gpt-4o-mini-transcribe",
+                file=audio_file_obj
+            )
+        return transcription.text
+    except Exception as e:
+        print(f"Transcription failed: {e}")
+        return ""
 
 
 def recording(WAVE_OUTPUT_FILENAME):
@@ -83,7 +118,8 @@ def remove_double_stars(text):
     return text
 
 def chat(messages):
-    from openai import OpenAI
+    if OpenAI is None:
+        raise ImportError("openai package is required for chat functionality")
     client = OpenAI()
     completion = client.chat.completions.create(
         model="gpt-4.1-nano-2025-04-14",
@@ -96,7 +132,8 @@ def chat(messages):
     return completion.choices[0].message.content
 
 def search(text):
-    from openai import OpenAI
+    if OpenAI is None:
+        raise ImportError("openai package is required for web search")
     client = OpenAI()
 
     response = client.responses.create(
@@ -125,42 +162,96 @@ def synthesis(text):
 def open_application(command):
     """Open an application or perform a Google search based on the command."""
     lower_command = command.lower()
-    applications = {
-        'open chrome': "start chrome",
-        'open edge': "start msedge",
-        'open word': "start winword",
-        'open spotify': "start spotify",
-        'open outlook': "start outlook",
-        'open notepad': "notepad",
-        'open control panel': "control",
-        'open system information window': "msconfig",
-        'open task manager': "taskmgr",
-        'open excel': "start excel",
-        'open user accounts': "netplwiz",
-        'open camera': "start microsoft.windows.camera:",
-        'open file explorer': "start explorer",
-        'open vs Code': "start code VoxOS_llama.py",
-        'shut down the computer': "shutdown /s /t 30",
-        'exit': "exit()",
-        'end session': "exit()",
-        # New entries
-        'open calculator': "calc",
-        'open paint': "mspaint",
-        'open disk management': "diskmgmt.msc",
-        'open device manager': "devmgmt.msc",
-        'open network connections': "ncpa.cpl",
-        'open power options': "powercfg.cpl",
-        'open remote desktop': "mstsc",
-        'open settings': "start ms-settings:",
-        'restart computer': "shutdown /r /t 10",
-        'lock computer': "rundll32.exe user32.dll,LockWorkStation",
-        }
+    platform = (
+        'win32' if sys.platform.startswith('win') else
+        'darwin' if sys.platform.startswith('darwin') else
+        'linux'
+    )
 
-    for app_command, system_command in applications.items():
-        if app_command in command.lower():
-            synthesis("Openning applicaiton now")
-            os.system(system_command)
-            return True  # Indicates that an application command was executed
+    applications = {
+        'open chrome': {
+            'win32': 'start chrome',
+            'linux': 'google-chrome',
+            'darwin': 'open -a "Google Chrome"'
+        },
+        'open edge': {
+            'win32': 'start msedge',
+            'linux': 'microsoft-edge',
+            'darwin': 'open -a "Microsoft Edge"'
+        },
+        'open word': {
+            'win32': 'start winword'
+        },
+        'open spotify': {
+            'win32': 'start spotify',
+            'darwin': 'open -a Spotify'
+        },
+        'open outlook': {
+            'win32': 'start outlook'
+        },
+        'open notepad': {
+            'win32': 'notepad',
+            'linux': 'gedit',
+            'darwin': 'open -a TextEdit'
+        },
+        'open control panel': {'win32': 'control'},
+        'open system information window': {'win32': 'msconfig'},
+        'open task manager': {'win32': 'taskmgr'},
+        'open excel': {'win32': 'start excel'},
+        'open user accounts': {'win32': 'netplwiz'},
+        'open camera': {
+            'win32': 'start microsoft.windows.camera:',
+            'darwin': 'open /Applications/Photo\ Booth.app'
+        },
+        'open file explorer': {
+            'win32': 'start explorer',
+            'linux': 'xdg-open .',
+            'darwin': 'open .'
+        },
+        'open vs code': {
+            'win32': 'start code VoxOS_llama.py',
+            'linux': 'code',
+            'darwin': 'open -a "Visual Studio Code"'
+        },
+        'open terminal': {
+            'win32': 'start cmd',
+            'linux': 'x-terminal-emulator',
+            'darwin': 'open -a Terminal'
+        },
+        'shut down the computer': {'win32': 'shutdown /s /t 30'},
+        'exit': {'win32': 'exit()'},
+        'end session': {'win32': 'exit()'},
+        'open calculator': {
+            'win32': 'calc',
+            'linux': 'gnome-calculator',
+            'darwin': 'open -a Calculator'
+        },
+        'open paint': {'win32': 'mspaint'},
+        'open disk management': {'win32': 'diskmgmt.msc'},
+        'open device manager': {'win32': 'devmgmt.msc'},
+        'open network connections': {'win32': 'ncpa.cpl'},
+        'open power options': {'win32': 'powercfg.cpl'},
+        'open remote desktop': {
+            'win32': 'mstsc'
+        },
+        'open settings': {
+            'win32': 'start ms-settings:',
+            'darwin': 'open -a "System Settings"'
+        },
+        'restart computer': {'win32': 'shutdown /r /t 10'},
+        'lock computer': {'win32': 'rundll32.exe user32.dll,LockWorkStation'},
+    }
+
+    for app_command, platform_cmds in applications.items():
+        if app_command in lower_command:
+            system_command = platform_cmds.get(platform)
+            if system_command:
+                synthesis("Openning applicaiton now")
+                os.system(system_command)
+                return True
+            else:
+                print(f"Platform '{platform}' not supported for command '{app_command}'")
+                return False
     if 'search google for' in lower_command:
         # Extracting the query after the specific phrase
         query = lower_command.split('search google for')[-1].strip()
