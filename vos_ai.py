@@ -30,7 +30,7 @@ WAVE_OUTPUT_FILENAME = "file.wav"
 
 
 OUTPUT_PATH = "output.mp3"  # Path to save the output audio file
-YOUR_API_KEY = "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"
+YOUR_API_KEY = ""
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
