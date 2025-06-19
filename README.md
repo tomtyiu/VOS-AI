@@ -47,11 +47,12 @@ Say **"run python"** followed by a description of the code you want to generate 
 
 ## TODO
 
-- Remove hard-coded API keys from the source
 - Cross-platform support for Linux and macOS
 - User-friendly GUI interface
 - More built-in voice commands
 - Better error handling for speech recognition
+## Finished:
+- Removed hard-coded API keys from the source
 
 ## License
 
