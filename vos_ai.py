@@ -148,7 +148,7 @@ def search(text):
 
 def synthesis(text):
     client = ElevenLabs(
-        api_key="6e0cbf471758fea24ca41cdbea3ef586", # Defaults to ELEVEN_API_KEY
+        api_key="", # Defaults to ELEVEN_API_KEY
         )
 
     audio = client.generate(
