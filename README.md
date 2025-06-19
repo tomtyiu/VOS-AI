@@ -54,6 +54,17 @@ Say **"run python"** followed by a description of the code you want to generate 
 ## Finished:
 - Removed hard-coded API keys from the source
 
+## Evaluation
+
+Run the benchmark script to exercise the assistant without launching any
+applications:
+
+```bash
+python evaluate_vos_ai.py
+```
+
+Results are written to `benchmark_results.json`.
+
 ## License
 
 This project is released under the [MIT License](LICENSE).
